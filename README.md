@@ -29,13 +29,14 @@ ansible-awx/
 
 ## Características principales
 
-- **🎯 Playbooks 100% Interactivos**: Todos los datos se solicitan durante la ejecución
+- **🎯 Optimizado para AWX/Tower**: Job Templates con Survey para entrada de datos
+- **🔧 Normalización automática de UPN**: Solo se requiere la parte local del email
 - **✅ Operaciones CRUD completas**: Crear, leer, actualizar y eliminar usuarios
 - **🔗 Integración con Microsoft Graph API**: Utilización de la API oficial de Microsoft
-- **🔧 Estructura modular**: Roles reutilizables y playbooks específicos
-- **🛡️ Gestión segura de credenciales**: Soporte completo para ansible-vault
+- **🏗️ Estructura modular**: Roles reutilizables y playbooks específicos
+- **🛡️ Gestión segura de credenciales**: Soporte completo para ansible-vault y variables de entorno
 - **🔒 Validaciones y confirmaciones**: Múltiples verificaciones para operaciones críticas
-- **📚 Documentación completa**: Guías detalladas y ejemplos paso a paso
+- **📚 Documentación completa**: Guías detalladas para configuración de Survey en AWX
 
 ## Tecnologías utilizadas
 
@@ -45,13 +46,13 @@ ansible-awx/
 
 ## Casos de uso
 
-Este repositorio permite realizar de manera **interactiva**:
-- **Creación individual de usuarios** con validación en tiempo real
+Este repositorio permite realizar mediante **Job Templates de AWX** con Survey:
+- **Creación de usuarios** con normalización automática del UPN
 - **Actualización selectiva** de campos específicos de usuario
-- **Eliminación segura** con múltiples confirmaciones
+- **Eliminación controlada** con confirmaciones obligatorias
 - **Consultas flexibles** con diferentes filtros y opciones
 - **Generación de reportes** automáticos de usuarios
-- **Gestión guiada** paso a paso sin necesidad de archivos de configuración
+- **Gestión de dominio unificado** mediante variable de inventario
 
 ## Requisitos previos
 
@@ -62,30 +63,29 @@ Este repositorio permite realizar de manera **interactiva**:
 
 ## Inicio Rápido
 
-1. **Configurar credenciales**:
-   ```bash
-   # Copiar plantilla y editar con tus credenciales
-   cp examples/secrets_template.yml vault/secrets.yml
-   # Editar el archivo con tus credenciales reales
-   # Encriptar el archivo
-   ansible-vault encrypt vault/secrets.yml
+1. **Configurar inventario en AWX**:
+   ```yaml
+   # Group Variables del inventario
+   m365_domain: "tuempresa.com"  # Tu dominio de Microsoft 365
    ```
 
-2. **Usar el menú interactivo**:
-   ```bash
-   ansible-playbook playbooks/main_menu.yml --ask-vault-pass
+2. **Configurar credenciales** (Custom Credential Type):
+   ```yaml
+   # Microsoft Graph API credentials
+   tenant_id: "your-tenant-id"
+   client_id: "your-client-id" 
+   client_secret: "your-client-secret"
    ```
 
-3. **O ejecutar playbooks individuales**:
-   ```bash
-   # Crear usuario (completamente interactivo)
-   ansible-playbook playbooks/users/create_users.yml --ask-vault-pass
-   
-   # Consultar usuarios (con opciones de filtrado)
-   ansible-playbook playbooks/users/query_users.yml --ask-vault-pass
+3. **Crear Job Templates** con Survey habilitado:
+   ```yaml
+   # Ejemplo: Create User Job Template
+   Name: "Crear Usuario M365"
+   Playbook: "playbooks/users/create_users.yml"
+   Survey: Enabled (ver documentación)
    ```
 
-4. **Ver la documentación detallada**:
+4. **Ver la documentación de Survey**:
    ```bash
-   cat playbooks/README.md
+   cat docs/AWX_SURVEY_VARIABLES.md
    ```

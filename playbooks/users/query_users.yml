@@ -1,206 +1,100 @@
 ---
-# Playbook interactivo para consultar y listar usuarios en Microsoft 365
-# Este playbook solicita los filtros de búsqueda interactivamente
-name: Consultar usuarios en Microsoft 365
-hosts: localhost
-connection: local
-gather_facts: false
+# Playbook para consultar usuarios en Microsoft 365 (AWX-friendly)
+- name: Consultar usuarios en Microsoft 365
+  hosts: localhost
+  connection: local
+  gather_facts: false
 
-vars:
-  tenant_id: "{{ vault_tenant_id | default('your-tenant-id') }}"
-  client_id: "{{ vault_client_id | default('your-client-id') }}"
-  client_secret: "{{ vault_client_secret | default('your-client-secret') }}"
+  vars:
+    tenant_id: "{{ lookup('env','TENANT_ID') | default(vault_tenant_id | default('your-tenant-id'), true) }}"
+    client_id: "{{ lookup('env','CLIENT_ID') | default(vault_client_id | default('your-client-id'), true) }}"
+    client_secret: "{{ lookup('env','CLIENT_SECRET') | default(vault_client_secret | default('your-client-secret'), true) }}"
 
-tasks:
-  - name: Seleccionar tipo de consulta
-    pause:
-      prompt: |
+    # Variables opcionales del Survey para filtros:
+    search_term: "{{ search_term | default('') }}"
+    filter_department: "{{ filter_department | default('') }}"
+    filter_enabled: "{{ filter_enabled | default('') }}"
+    generate_report: "{{ generate_report | default(false) | bool }}"
+    
+    # Para búsqueda específica por UPN (si se especifica user_upn)
+    search_upn_normalized: "{{ user_upn | lower if user_upn is defined else '' }}"
+    search_user_principal_name: "{{ search_upn_normalized }}@{{ m365_domain | default('contoso.com') if search_upn_normalized != '' else '' }}"
 
-        === CONSULTAR USUARIOS EN MICROSOFT 365 ===
+  tasks:
+    - name: Construir filtros de consulta para búsqueda específica por UPN
+      set_fact:
+        query_filters:
+          upn_exact: "{{ search_user_principal_name }}"
+      when: search_upn_normalized != ""
 
-        Seleccione el tipo de consulta que desea realizar:
+    - name: Construir filtros de consulta generales
+      set_fact:
+        query_filters: {}
+      when: search_upn_normalized == ""
 
-        1. Buscar por nombre o email
-        2. Filtrar por departamento
-        3. Filtrar por estado (habilitado/deshabilitado)
-        4. Listar todos los usuarios
-        5. Búsqueda combinada (múltiples filtros)
+    - name: Añadir término de búsqueda general
+      set_fact:
+        query_filters: "{{ query_filters | combine({'search_term': search_term}) }}"
+      when: 
+        - search_upn_normalized == ""
+        - search_term != ""
 
-        Ingrese el número de opción (1-5)
-    register: query_type_input
+    - name: Añadir filtro por departamento
+      set_fact:
+        query_filters: "{{ query_filters | combine({'department': filter_department}) }}"
+      when: 
+        - search_upn_normalized == ""
+        - filter_department != ""
 
-  - name: Validar opción seleccionada
-    fail:
-      msg: "Opción no válida. Debe ingresar un número del 1 al 5."
-    when: query_type_input.user_input | trim not in ['1', '2', '3', '4', '5']
+    - name: Añadir filtro por estado habilitado
+      set_fact:
+        query_filters: "{{ query_filters | combine({'enabled': filter_enabled}) }}"
+      when: 
+        - search_upn_normalized == ""
+        - filter_enabled != ""
 
-  - name: Solicitar término de búsqueda (opción 1)
-    pause:
-      prompt: |
-        Ingrese el nombre o email del usuario a buscar
-    register: search_term_input
-    when: query_type_input.user_input | trim == '1'
+    - name: Consultar usuarios mediante Microsoft Graph API
+      include_role:
+        name: microsoft_graph_user
+      vars:
+        action: query
+        filters: "{{ query_filters }}"
+      tags: [query_users, users]
 
-  - name: Solicitar departamento (opción 2)
-    pause:
-      prompt: |
-        Ingrese el departamento a filtrar (ej. IT, RRHH, Ventas)
-    register: department_input
-    when: query_type_input.user_input | trim == '2'
+    - name: Mostrar resultados de consulta
+      debug:
+        msg: |
+          === RESULTADOS DE LA CONSULTA ===
+          Total de usuarios encontrados: {{ queried_users | length if queried_users is defined else 0 }}
+          
+          {% if queried_users is defined and queried_users | length > 0 %}
+          Primeros {{ [queried_users | length, 10] | min }} usuarios:
+          {% for user in queried_users[:10] %}
+          {{ loop.index }}. {{ user.displayName }} ({{ user.userPrincipalName }})
+             Departamento: {{ user.department | default('No especificado') }}
+             Puesto: {{ user.jobTitle | default('No especificado') }}
+             Estado: {{ 'Habilitado' if user.accountEnabled else 'Deshabilitado' }}
+          {% endfor %}
+          {% if queried_users | length > 10 %}
+          ... y {{ queried_users | length - 10 }} usuarios más
+          {% endif %}
+          {% endif %}
+      when: queried_users is defined
 
-  - name: Solicitar estado de usuario (opción 3)
-    pause:
-      prompt: |
-        Filtrar por estado:
-        - 'true' para usuarios habilitados
-        - 'false' para usuarios deshabilitados
+    - name: Generar reporte de usuarios
+      template:
+        src: user_report.j2
+        dest: "/tmp/user_report_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}.txt"
+      when: 
+        - generate_report
+        - queried_users is defined
+        - queried_users | length > 0
+      register: report_generated
 
-        Ingrese true o false
-    register: enabled_input
-    when: query_type_input.user_input | trim == '3'
-
-  - name: Configurar búsqueda combinada - término de búsqueda
-    pause:
-      prompt: |
-        === BÚSQUEDA COMBINADA ===
-
-        Término de búsqueda (nombre/email) - OPCIONAL, presione Enter para omitir
-    register: combined_search_input
-    when: query_type_input.user_input | trim == '5'
-
-  - name: Configurar búsqueda combinada - departamento
-    pause:
-      prompt: |
-        Departamento - OPCIONAL, presione Enter para omitir
-    register: combined_department_input
-    when: query_type_input.user_input | trim == '5'
-
-  - name: Configurar búsqueda combinada - estado
-    pause:
-      prompt: |
-        Estado (true/false) - OPCIONAL, presione Enter para omitir
-    register: combined_enabled_input
-    when: query_type_input.user_input | trim == '5'
-
-  - name: Construir filtros de consulta - opción 1
-    set_fact:
-      query_filters:
-        search_term: "{{ search_term_input.user_input | trim }}"
-    when: query_type_input.user_input | trim == '1'
-
-  - name: Construir filtros de consulta - opción 2
-    set_fact:
-      query_filters:
-        department: "{{ department_input.user_input | trim }}"
-    when: query_type_input.user_input | trim == '2'
-
-  - name: Construir filtros de consulta - opción 3
-    set_fact:
-      query_filters:
-        enabled: "{{ enabled_input.user_input | trim }}"
-    when: query_type_input.user_input | trim == '3'
-
-  - name: Construir filtros de consulta - opción 4
-    set_fact:
-      query_filters: {}
-    when: query_type_input.user_input | trim == '4'
-
-  - name: Construir filtros de consulta - opción 5
-    set_fact:
-      query_filters: {}
-    when: query_type_input.user_input | trim == '5'
-
-  - name: Añadir término de búsqueda combinada
-    set_fact:
-      query_filters: "{{ query_filters | combine({'search_term': combined_search_input.user_input | trim}) }}"
-    when:
-      - query_type_input.user_input | trim == '5'
-      - combined_search_input.user_input | trim != ""
-
-  - name: Añadir departamento combinado
-    set_fact:
-      query_filters: "{{ query_filters | combine({'department': combined_department_input.user_input | trim}) }}"
-    when:
-      - query_type_input.user_input | trim == '5'
-      - combined_department_input.user_input | trim != ""
-
-  - name: Añadir estado combinado
-    set_fact:
-      query_filters: "{{ query_filters | combine({'enabled': combined_enabled_input.user_input | trim}) }}"
-    when:
-      - query_type_input.user_input | trim == '5'
-      - combined_enabled_input.user_input | trim != ""
-
-  - name: Solicitar generar reporte
-    pause:
-      prompt: |
-        ¿Desea generar un reporte en archivo además de mostrar los resultados? (s/N)
-    register: generate_report_input
-
-  - name: Mostrar filtros aplicados
-    debug:
-      msg: |
-
-        === FILTROS DE BÚSQUEDA ===
-        {% if query_filters | length > 0 %}
-        {% for key, value in query_filters.items() %}
-        - {{ key }}: {{ value }}
-        {% endfor %}
-        {% else %}
-        Sin filtros - Se mostrarán todos los usuarios
-        {% endif %}
-
-  - name: Consultar usuarios mediante Microsoft Graph API
-    include_role:
-      name: microsoft_graph_user
-    vars:
-      action: query
-      filters: "{{ query_filters }}"
-    tags:
-      - query_users
-      - users
-
-  - name: Mostrar usuarios encontrados
-    debug:
-      msg: |
-
-        === RESULTADOS DE LA BÚSQUEDA ===
-
-        Total de usuarios encontrados: {{ queried_users | length if queried_users is defined else 0 }}
-
-        {% if queried_users is defined and queried_users | length > 0 %}
-        {% for user in queried_users[:10] %}
-        {{ loop.index }}. {{ user.displayName }} ({{ user.userPrincipalName }})
-           Departamento: {{ user.department | default('No especificado') }}
-           Puesto: {{ user.jobTitle | default('No especificado') }}
-           Estado: {{ 'Habilitado' if user.accountEnabled else 'Deshabilitado' }}
-
-        {% endfor %}
-        {% if queried_users | length > 10 %}
-        ... y {{ queried_users | length - 10 }} usuarios más
-        {% endif %}
-        {% endif %}
-    when: queried_users is defined
-    tags:
-      - show_results
-
-  - name: Generar reporte de usuarios
-    template:
-      src: user_report.j2
-      dest: "/tmp/user_report_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}.txt"
-    when:
-      - (generate_report_input.user_input | trim | lower) in ['s', 'si', 'yes', 'y']
-      - queried_users is defined
-    register: report_generated
-    tags:
-      - report
-
-  - name: Mostrar ubicación del reporte
-    debug:
-      msg: |
-
-        📄 REPORTE GENERADO
-
-        Archivo: {{ report_generated.dest }}
-        Usuarios incluidos: {{ queried_users | length }}
-    when: report_generated is succeeded
+    - name: Mostrar ubicación del reporte
+      debug:
+        msg: |
+          📄 REPORTE GENERADO
+          Archivo: {{ report_generated.dest }}
+          Usuarios incluidos: {{ queried_users | length }}
+      when: report_generated is succeeded
