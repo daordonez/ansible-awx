@@ -6,9 +6,9 @@
   gather_facts: false
 
   vars:
-    tenant_id: "{{ vault_tenant_id | default('your-tenant-id') }}"
-    client_id: "{{ vault_client_id | default('your-client-id') }}"
-    client_secret: "{{ vault_client_secret | default('your-client-secret') }}"
+    tenant_id: "{{ lookup('env','TENANT_ID') | default(vault_tenant_id | default('your-tenant-id'), true) }}"
+    client_id: "{{ lookup('env','CLIENT_ID') | default(vault_client_id | default('your-client-id'), true) }}"
+    client_secret: "{{ lookup('env','CLIENT_SECRET') | default(vault_client_secret | default('your-client-secret'), true) }}"
 
   tasks:
     - name: Mostrar menú principal
