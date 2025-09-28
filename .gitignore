@@ -38,6 +38,7 @@ Thumbs.db
 *.temp
 /tmp/
 
-# Local configuration
-ansible.cfg
+# Local configuration overrides
+ansible.cfg.local
+!ansible.cfg
 !examples/ansible.cfg.example
