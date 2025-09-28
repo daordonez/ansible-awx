@@ -1,0 +1,111 @@
+---
+# Playbook principal - Menú interactivo para gestión de usuarios Microsoft 365
+- name: Menú Principal - Gestión de Usuarios Microsoft 365
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    tenant_id: "{{ vault_tenant_id | default('your-tenant-id') }}"
+    client_id: "{{ vault_client_id | default('your-client-id') }}"
+    client_secret: "{{ vault_client_secret | default('your-client-secret') }}"
+
+  tasks:
+  - name: Mostrar menú principal
+    pause:
+      prompt: |
+        
+        ═══════════════════════════════════════════════════════════
+                    GESTIÓN DE USUARIOS MICROSOFT 365
+        ═══════════════════════════════════════════════════════════
+        
+        Seleccione la operación que desea realizar:
+        
+        1. 👤 CREAR nuevo usuario
+        2. ✏️  ACTUALIZAR usuario existente
+        3. 🗑️  ELIMINAR usuario
+        4. 🔍 CONSULTAR/BUSCAR usuarios
+        5. ❌ SALIR
+        
+        Ingrese el número de opción (1-5)
+    register: menu_option
+
+  - name: Validar opción del menú
+    fail:
+      msg: "Opción no válida. Debe ingresar un número del 1 al 5."
+    when: menu_option.user_input | trim not in ['1', '2', '3', '4', '5']
+
+  - name: Salir del menú
+    debug:
+      msg: |
+        
+        👋 Gracias por usar el sistema de gestión de usuarios Microsoft 365
+        
+        ¡Hasta la próxima!
+    when: menu_option.user_input | trim == '5'
+
+  - name: Finalizar ejecución si se selecciona salir
+    meta: end_play
+    when: menu_option.user_input | trim == '5'
+
+  - name: Información sobre creación de usuarios
+    debug:
+      msg: |
+        
+        🔄 Ejecutando creación de usuarios...
+        
+        Por favor, ejecute el siguiente comando en una nueva terminal:
+        ansible-playbook playbooks/users/create_users.yml --ask-vault-pass
+    when: menu_option.user_input | trim == '1'
+
+  - name: Información sobre actualización de usuarios
+    debug:
+      msg: |
+        
+        🔄 Ejecutando actualización de usuarios...
+        
+        Por favor, ejecute el siguiente comando en una nueva terminal:
+        ansible-playbook playbooks/users/update_users.yml --ask-vault-pass
+    when: menu_option.user_input | trim == '2'
+
+  - name: Información sobre eliminación de usuarios
+    debug:
+      msg: |
+        
+        🔄 Ejecutando eliminación de usuarios...
+        
+        Por favor, ejecute el siguiente comando en una nueva terminal:
+        ansible-playbook playbooks/users/delete_users.yml --ask-vault-pass
+    when: menu_option.user_input | trim == '3'
+
+  - name: Información sobre consulta de usuarios
+    debug:
+      msg: |
+        
+        🔄 Ejecutando consulta de usuarios...
+        
+        Por favor, ejecute el siguiente comando en una nueva terminal:
+        ansible-playbook playbooks/users/query_users.yml --ask-vault-pass
+    when: menu_option.user_input | trim == '4'
+
+  - name: Preguntar si desea realizar otra operación
+    pause:
+      prompt: |
+        
+        ¿Desea realizar otra operación? (s/N)
+    register: continue_operation
+    when: menu_option.user_input | trim in ['1', '2', '3', '4']
+
+  - name: Reiniciar menú si el usuario desea continuar
+    include_tasks: "{{ playbook_dir }}/main_menu.yml"
+    when: 
+      - menu_option.user_input | trim in ['1', '2', '3', '4']
+      - (continue_operation.user_input | trim | lower) in ['s', 'si', 'yes', 'y']
+
+  - name: Mensaje de despedida
+    debug:
+      msg: |
+        
+        ✅ Operación completada exitosamente
+        
+        👋 Gracias por usar el sistema de gestión de usuarios Microsoft 365

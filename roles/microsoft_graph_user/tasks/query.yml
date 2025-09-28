@@ -14,23 +14,86 @@
   register: auth_response
   no_log: true
 
-- name: Construir query de filtros
-  set_fact:
-    query_string: '{% if filters.search_term %}$search="displayName:{{ filters.search_term }}"{% endif %}{% if filters.department %}{% if query_string %}{{ query_string }}&{% endif %}$filter=department eq ''{{ filters.department }}''{% endif %}{% if filters.enabled %}{% if query_string %}{{ query_string }}&{% endif %}$filter=accountEnabled eq {{ filters.enabled }}{% endif %}'
+- name: Consulta específica por UPN (búsqueda exacta)
+  block:
+    - name: Consultar usuario específico por UPN
+      uri:
+        url: "{{ graph_api_url }}/users/{{ filters.upn_exact }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ auth_response.json.access_token }}"
+        status_code: [200, 404]
+      register: specific_user_response
 
-- name: Consultar usuarios en Microsoft 365
-  uri:
-    url: "{{ graph_api_url }}/users{% if query_string %}?{{ query_string }}{% endif %}"
-    method: GET
-    headers:
-      Authorization: "Bearer {{ auth_response.json.access_token }}"
-      ConsistencyLevel: eventual
-    status_code: 200
-  register: query_users_response
+    - name: Procesar usuario encontrado por UPN
+      set_fact:
+        queried_users: "{{ [specific_user_response.json] if specific_user_response.status == 200 else [] }}"
 
-- name: Procesar usuarios encontrados
-  set_fact:
-    queried_users: "{{ query_users_response.json.value }}"
+  when: filters.upn_exact is defined and filters.upn_exact != ""
+
+- name: Consulta con filtros generales
+  block:
+    - name: Inicializar componentes de query
+      set_fact:
+        search_components: []
+        filter_components: []
+
+    - name: Añadir búsqueda por nombre/email
+      set_fact:
+        search_components: "{{ search_components + ['displayName:' + filters.search_term] }}"
+      when: filters.search_term is defined and filters.search_term != ""
+
+    - name: Añadir filtro por departamento
+      set_fact:
+        filter_components: "{{ filter_components + ['department eq \\'' + filters.department + '\\''] }}"
+      when: filters.department is defined and filters.department != ""
+
+    - name: Añadir filtro por estado habilitado
+      set_fact:
+        filter_components: "{{ filter_components + ['accountEnabled eq ' + filters.enabled] }}"
+      when: filters.enabled is defined and filters.enabled != ""
+
+    - name: Construir query string final
+      set_fact:
+        query_parts: []
+
+    - name: Añadir componente de búsqueda
+      set_fact:
+        query_parts: "{{ query_parts + ['$search=\"' + search_components | join(' OR ') + '\"'] }}"
+      when: search_components | length > 0
+
+    - name: Añadir componente de filtro
+      set_fact:
+        query_parts: "{{ query_parts + ['$filter=' + filter_components | join(' and ')] }}"
+      when: filter_components | length > 0
+
+    - name: Construir URL de consulta final
+      set_fact:
+        final_query_string: "{{ query_parts | join('&') if query_parts | length > 0 else '' }}"
+
+    - name: Consultar usuarios en Microsoft 365
+      uri:
+        url: "{{ graph_api_url }}/users{% if final_query_string %}?{{ final_query_string }}{% endif %}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ auth_response.json.access_token }}"
+          ConsistencyLevel: eventual
+        status_code: 200
+      register: query_users_response
+
+    - name: Procesar usuarios encontrados
+      set_fact:
+        queried_users: "{{ query_users_response.json.value }}"
+
+  when: filters.upn_exact is not defined or filters.upn_exact == ""
+
+- name: Validar resultado de la consulta
+  fail:
+    msg: "Usuario no encontrado: {{ filters.upn_exact }}"
+  when: 
+    - filters.upn_exact is defined 
+    - filters.upn_exact != ""
+    - queried_users | length == 0
 
 - name: Mostrar cantidad de usuarios encontrados
   debug:

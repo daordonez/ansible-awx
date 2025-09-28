@@ -1,6 +1,6 @@
 ---
-# Playbook para crear usuarios en Microsoft 365
-# Este playbook utiliza la API de Microsoft Graph para crear usuarios
+# Playbook interactivo para crear usuarios en Microsoft 365
+# Este playbook solicita los datos del usuario interactivamente
 name: Crear usuarios en Microsoft 365
 hosts: localhost
 connection: local
@@ -12,37 +12,106 @@ vars:
   client_id: "{{ vault_client_id | default('your-client-id') }}"
   client_secret: "{{ vault_client_secret | default('your-client-secret') }}"
 
-  # Lista de usuarios a crear (ejemplo)
-  users_to_create:
-    - display_name: "Juan Pérez"
-      user_principal_name: "juan.perez@yourdomain.com"
-      mail_nickname: "juan.perez"
-      password: "TempPassword123!"
-      force_change_password: true
-      department: "IT"
-      job_title: "Developer"
-    - display_name: "María González"
-      user_principal_name: "maria.gonzalez@yourdomain.com"
-      mail_nickname: "maria.gonzalez"
-      password: "TempPassword456!"
-      force_change_password: true
-      department: "HR"
-      job_title: "HR Manager"
-
 tasks:
-  - name: Crear usuarios mediante Microsoft Graph API
+  - name: Solicitar información del usuario a crear
+    pause:
+      prompt: |
+        
+        === CREAR NUEVO USUARIO EN MICROSOFT 365 ===
+        
+        Por favor, ingrese los siguientes datos del usuario:
+        
+        Nombre completo (ej. Juan Pérez)
+    register: display_name_input
+
+  - name: Solicitar User Principal Name
+    pause:
+      prompt: |
+        User Principal Name/Email (ej. juan.perez@tuempresa.com)
+    register: upn_input
+
+  - name: Solicitar alias de correo
+    pause:
+      prompt: |
+        Alias de correo (ej. juan.perez)
+    register: mail_nickname_input
+
+  - name: Solicitar contraseña temporal
+    pause:
+      prompt: |
+        Contraseña temporal (mínimo 8 caracteres, debe incluir mayúsculas, minúsculas y números)
+      echo: false
+    register: password_input
+
+  - name: Solicitar departamento
+    pause:
+      prompt: |
+        Departamento (ej. IT, RRHH, Ventas) - OPCIONAL, presione Enter para omitir
+    register: department_input
+
+  - name: Solicitar puesto de trabajo
+    pause:
+      prompt: |
+        Puesto de trabajo (ej. Developer, Manager) - OPCIONAL, presione Enter para omitir
+    register: job_title_input
+
+  - name: Confirmar forzar cambio de contraseña
+    pause:
+      prompt: |
+        ¿Forzar cambio de contraseña en el primer inicio de sesión? (s/N)
+    register: force_password_input
+
+  - name: Procesar datos ingresados
+    set_fact:
+      user_data:
+        display_name: "{{ display_name_input.user_input | trim }}"
+        user_principal_name: "{{ upn_input.user_input | trim }}"
+        mail_nickname: "{{ mail_nickname_input.user_input | trim }}"
+        password: "{{ password_input.user_input | trim }}"
+        force_change_password: "{{ (force_password_input.user_input | trim | lower) in ['s', 'si', 'yes', 'y'] }}"
+        department: "{{ department_input.user_input | trim if department_input.user_input | trim != '' else '' }}"
+        job_title: "{{ job_title_input.user_input | trim if job_title_input.user_input | trim != '' else '' }}"
+
+  - name: Validar datos requeridos
+    fail:
+      msg: "Error: {{ item.field }} es requerido y no puede estar vacío"
+    when: item.value == "" or item.value is undefined
+    loop:
+      - { field: "Nombre completo", value: "{{ user_data.display_name }}" }
+      - { field: "User Principal Name", value: "{{ user_data.user_principal_name }}" }
+      - { field: "Alias de correo", value: "{{ user_data.mail_nickname }}" }
+      - { field: "Contraseña", value: "{{ user_data.password }}" }
+
+  - name: Mostrar resumen de datos a crear
+    debug:
+      msg: |
+        
+        === RESUMEN DEL USUARIO A CREAR ===
+        Nombre: {{ user_data.display_name }}
+        UPN: {{ user_data.user_principal_name }}
+        Alias: {{ user_data.mail_nickname }}
+        Departamento: {{ user_data.department if user_data.department != '' else 'No especificado' }}
+        Puesto: {{ user_data.job_title if user_data.job_title != '' else 'No especificado' }}
+        Forzar cambio de contraseña: {{ user_data.force_change_password }}
+
+  - name: Confirmación final
+    pause:
+      prompt: |
+        
+        ¿Confirma la creación del usuario con los datos mostrados? (s/N)
+    register: final_confirmation
+
+  - name: Crear usuario mediante Microsoft Graph API
     include_role:
       name: microsoft_graph_user
     vars:
       action: create
-      user_data: "{{ item }}"
-    loop: "{{ users_to_create }}"
+      user_data: "{{ user_data }}"
+    when: (final_confirmation.user_input | trim | lower) in ['s', 'si', 'yes', 'y']
     tags:
       - create_users
       - users
 
-  - name: Mostrar resumen de usuarios creados
+  - name: Mostrar resultado de la operación
     debug:
-      msg: "Se han procesado {{ users_to_create | length }} usuarios para creación"
-    tags:
-      - summary
+      msg: "{{ 'Usuario creado exitosamente' if (final_confirmation.user_input | trim | lower) in ['s', 'si', 'yes', 'y'] else 'Operación cancelada por el usuario' }}"

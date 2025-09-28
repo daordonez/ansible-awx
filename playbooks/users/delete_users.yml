@@ -1,5 +1,6 @@
 ---
-# Playbook para eliminar usuarios en Microsoft 365
+# Playbook interactivo para eliminar usuarios en Microsoft 365
+# Este playbook solicita el usuario a eliminar interactivamente
 name: Eliminar usuarios en Microsoft 365
 hosts: localhost
 connection: local
@@ -10,32 +11,103 @@ vars:
   client_id: "{{ vault_client_id | default('your-client-id') }}"
   client_secret: "{{ vault_client_secret | default('your-client-secret') }}"
 
-  # Lista de usuarios a eliminar (por UPN)
-  users_to_delete:
-    - "usuario.temporal@yourdomain.com"
-    - "usuario.test@yourdomain.com"
-
 tasks:
-  - name: Confirmar eliminación de usuarios
-    pause:
-      prompt: "¿Está seguro de que desea eliminar {{ users_to_delete | length }} usuarios? (Presione Enter para continuar, Ctrl+C para cancelar)"
-    when: confirm_deletion | default(true) | bool
-    tags:
-      - confirmation
+  - name: Advertencia sobre eliminación de usuarios
+    debug:
+      msg: |
+        
+        ⚠️  ADVERTENCIA: ELIMINACIÓN DE USUARIO ⚠️
+        
+        Esta operación eliminará PERMANENTEMENTE el usuario de Microsoft 365.
+        
+        - Se perderán todos los datos asociados al usuario
+        - El acceso a todos los servicios será revocado inmediatamente  
+        - Esta acción NO se puede deshacer
+        
+        Proceda solo si está completamente seguro de esta acción.
 
-  - name: Eliminar usuarios mediante Microsoft Graph API
+  - name: Solicitar UPN del usuario a eliminar
+    pause:
+      prompt: |
+        
+        === ELIMINAR USUARIO DE MICROSOFT 365 ===
+        
+        User Principal Name del usuario a eliminar (ej. usuario@tuempresa.com)
+        
+        ESCRIBA "CANCELAR" para abortar la operación
+    register: upn_input
+
+  - name: Verificar cancelación
+    meta: end_play
+    when: (upn_input.user_input | trim | lower) == 'cancelar'
+
+  - name: Validar UPN ingresado
+    fail:
+      msg: "Error: Debe ingresar un User Principal Name válido"
+    when: upn_input.user_input | trim == ""
+
+  - name: Verificar existencia del usuario
+    include_role:
+      name: microsoft_graph_user
+    vars:
+      action: query
+      filters:
+        search_term: "{{ upn_input.user_input | trim }}"
+        upn_exact: "{{ upn_input.user_input | trim }}"
+
+  - name: Solicitar confirmación con texto específico
+    pause:
+      prompt: |
+        
+        === CONFIRMACIÓN REQUERIDA ===
+        
+        Usuario a eliminar: {{ upn_input.user_input | trim }}
+        
+        Para confirmar la eliminación, escriba exactamente: ELIMINAR USUARIO
+        
+        Cualquier otro texto cancelará la operación
+    register: confirmation_text
+
+  - name: Verificar texto de confirmación
+    fail:
+      msg: "Operación cancelada: El texto de confirmación no coincide"
+    when: (confirmation_text.user_input | trim) != "ELIMINAR USUARIO"
+
+  - name: Segunda confirmación de seguridad
+    pause:
+      prompt: |
+        
+        === ÚLTIMA CONFIRMACIÓN ===
+        
+        ¿Está ABSOLUTAMENTE SEGURO de que desea eliminar el usuario {{ upn_input.user_input | trim }}?
+        
+        Esta es la ÚLTIMA oportunidad para cancelar.
+        
+        Escriba "SI, ELIMINAR" para proceder, cualquier otro texto cancelará
+    register: final_confirmation
+
+  - name: Verificar confirmación final
+    fail:
+      msg: "Operación cancelada por el usuario"
+    when: (final_confirmation.user_input | trim) != "SI, ELIMINAR"
+
+  - name: Eliminar usuario mediante Microsoft Graph API
     include_role:
       name: microsoft_graph_user
     vars:
       action: delete
-      user_principal_name: "{{ item }}"
-    loop: "{{ users_to_delete }}"
+      user_principal_name: "{{ upn_input.user_input | trim }}"
     tags:
       - delete_users
       - users
 
-  - name: Mostrar resumen de usuarios eliminados
+  - name: Mostrar confirmación de eliminación
     debug:
-      msg: "Se han procesado {{ users_to_delete | length }} usuarios para eliminación"
-    tags:
-      - summary
+      msg: |
+        
+        ✅ USUARIO ELIMINADO EXITOSAMENTE
+        
+        Usuario: {{ upn_input.user_input | trim }}
+        Fecha/Hora: {{ ansible_date_time.iso8601 }}
+        
+        El usuario ha sido eliminado permanentemente del tenant.

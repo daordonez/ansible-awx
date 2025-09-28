@@ -29,11 +29,13 @@ ansible-awx/
 
 ## Características principales
 
-- **Operaciones CRUD completas**: Crear, leer, actualizar y eliminar usuarios
-- **Integración con Microsoft Graph API**: Utilización de la API oficial de Microsoft
-- **Estructura modular**: Roles reutilizables y playbooks específicos
-- **Gestión segura de credenciales**: Soporte para ansible-vault
-- **Documentación completa**: Guías detalladas y ejemplos de uso
+- **🎯 Playbooks 100% Interactivos**: Todos los datos se solicitan durante la ejecución
+- **✅ Operaciones CRUD completas**: Crear, leer, actualizar y eliminar usuarios
+- **🔗 Integración con Microsoft Graph API**: Utilización de la API oficial de Microsoft
+- **🔧 Estructura modular**: Roles reutilizables y playbooks específicos
+- **🛡️ Gestión segura de credenciales**: Soporte completo para ansible-vault
+- **🔒 Validaciones y confirmaciones**: Múltiples verificaciones para operaciones críticas
+- **📚 Documentación completa**: Guías detalladas y ejemplos paso a paso
 
 ## Tecnologías utilizadas
 
@@ -43,12 +45,13 @@ ansible-awx/
 
 ## Casos de uso
 
-Este repositorio permite automatizar:
-- Creación masiva de usuarios
-- Actualización de perfiles de usuario
-- Eliminación controlada de usuarios
-- Consultas y reportes de usuarios
-- Gestión de usuarios por departamento/rol
+Este repositorio permite realizar de manera **interactiva**:
+- **Creación individual de usuarios** con validación en tiempo real
+- **Actualización selectiva** de campos específicos de usuario
+- **Eliminación segura** con múltiples confirmaciones
+- **Consultas flexibles** con diferentes filtros y opciones
+- **Generación de reportes** automáticos de usuarios
+- **Gestión guiada** paso a paso sin necesidad de archivos de configuración
 
 ## Requisitos previos
 
@@ -61,15 +64,28 @@ Este repositorio permite automatizar:
 
 1. **Configurar credenciales**:
    ```bash
-   ansible-vault create vault/secrets.yml
+   # Copiar plantilla y editar con tus credenciales
+   cp examples/secrets_template.yml vault/secrets.yml
+   # Editar el archivo con tus credenciales reales
+   # Encriptar el archivo
+   ansible-vault encrypt vault/secrets.yml
    ```
 
-2. **Ejecutar un playbook**:
+2. **Usar el menú interactivo**:
    ```bash
+   ansible-playbook playbooks/main_menu.yml --ask-vault-pass
+   ```
+
+3. **O ejecutar playbooks individuales**:
+   ```bash
+   # Crear usuario (completamente interactivo)
+   ansible-playbook playbooks/users/create_users.yml --ask-vault-pass
+   
+   # Consultar usuarios (con opciones de filtrado)
    ansible-playbook playbooks/users/query_users.yml --ask-vault-pass
    ```
 
-3. **Ver la documentación completa**:
+4. **Ver la documentación detallada**:
    ```bash
-   cat docs/README.md
+   cat playbooks/README.md
    ```

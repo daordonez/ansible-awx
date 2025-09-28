@@ -1,5 +1,6 @@
 ---
-# Playbook para actualizar usuarios en Microsoft 365
+# Playbook interactivo para actualizar usuarios en Microsoft 365
+# Este playbook solicita los datos del usuario a actualizar interactivamente
 name: Actualizar usuarios en Microsoft 365
 hosts: localhost
 connection: local
@@ -10,33 +11,136 @@ vars:
   client_id: "{{ vault_client_id | default('your-client-id') }}"
   client_secret: "{{ vault_client_secret | default('your-client-secret') }}"
 
-  # Lista de usuarios a actualizar
-  users_to_update:
-    - user_principal_name: "juan.perez@yourdomain.com"
-      updates:
-        department: "DevOps"
-        job_title: "Senior Developer"
-        office_location: "Madrid"
-    - user_principal_name: "maria.gonzalez@yourdomain.com"
-      updates:
-        job_title: "Senior HR Manager"
-        phone_number: "+34 123 456 789"
-
 tasks:
-  - name: Actualizar usuarios mediante Microsoft Graph API
+  - name: Solicitar UPN del usuario a actualizar
+    pause:
+      prompt: |
+        
+        === ACTUALIZAR USUARIO EN MICROSOFT 365 ===
+        
+        User Principal Name del usuario a actualizar (ej. juan.perez@tuempresa.com)
+    register: upn_input
+
+  - name: Validar UPN ingresado
+    fail:
+      msg: "Error: Debe ingresar un User Principal Name válido"
+    when: upn_input.user_input | trim == ""
+
+  - name: Verificar usuario existente
+    include_role:
+      name: microsoft_graph_user
+    vars:
+      action: query
+      filters:
+        search_term: "{{ upn_input.user_input | trim }}"
+        upn_exact: "{{ upn_input.user_input | trim }}"
+
+  - name: Solicitar nuevo nombre completo
+    pause:
+      prompt: |
+        Nuevo nombre completo (presione Enter para mantener el actual)
+    register: display_name_input
+
+  - name: Solicitar nuevo departamento
+    pause:
+      prompt: |
+        Nuevo departamento (presione Enter para mantener el actual)
+    register: department_input
+
+  - name: Solicitar nuevo puesto de trabajo
+    pause:
+      prompt: |
+        Nuevo puesto de trabajo (presione Enter para mantener el actual)
+    register: job_title_input
+
+  - name: Solicitar nueva ubicación de oficina
+    pause:
+      prompt: |
+        Nueva ubicación de oficina (presione Enter para mantener la actual)
+    register: office_location_input
+
+  - name: Solicitar nuevo número de teléfono
+    pause:
+      prompt: |
+        Nuevo número de teléfono (presione Enter para mantener el actual)
+    register: phone_input
+
+  - name: Solicitar nueva dirección
+    pause:
+      prompt: |
+        Nueva dirección postal (presione Enter para mantener la actual)
+    register: address_input
+
+  - name: Construir objeto de actualizaciones
+    set_fact:
+      user_updates: {}
+
+  - name: Añadir nombre completo a actualizaciones
+    set_fact:
+      user_updates: "{{ user_updates | combine({'displayName': display_name_input.user_input | trim}) }}"
+    when: display_name_input.user_input | trim != ""
+
+  - name: Añadir departamento a actualizaciones
+    set_fact:
+      user_updates: "{{ user_updates | combine({'department': department_input.user_input | trim}) }}"
+    when: department_input.user_input | trim != ""
+
+  - name: Añadir puesto de trabajo a actualizaciones
+    set_fact:
+      user_updates: "{{ user_updates | combine({'jobTitle': job_title_input.user_input | trim}) }}"
+    when: job_title_input.user_input | trim != ""
+
+  - name: Añadir ubicación de oficina a actualizaciones
+    set_fact:
+      user_updates: "{{ user_updates | combine({'officeLocation': office_location_input.user_input | trim}) }}"
+    when: office_location_input.user_input | trim != ""
+
+  - name: Añadir teléfono a actualizaciones
+    set_fact:
+      user_updates: "{{ user_updates | combine({'businessPhones': [phone_input.user_input | trim]}) }}"
+    when: phone_input.user_input | trim != ""
+
+  - name: Añadir dirección a actualizaciones
+    set_fact:
+      user_updates: "{{ user_updates | combine({'streetAddress': address_input.user_input | trim}) }}"
+    when: address_input.user_input | trim != ""
+
+  - name: Verificar si hay actualizaciones
+    fail:
+      msg: "No se han especificado campos para actualizar. Operación cancelada."
+    when: user_updates | length == 0
+
+  - name: Mostrar resumen de actualizaciones
+    debug:
+      msg: |
+        
+        === RESUMEN DE ACTUALIZACIONES ===
+        Usuario: {{ upn_input.user_input | trim }}
+        Campos a actualizar: {{ user_updates.keys() | list | join(', ') }}
+        
+        {% for key, value in user_updates.items() %}
+        - {{ key }}: {{ value }}
+        {% endfor %}
+
+  - name: Confirmación final
+    pause:
+      prompt: |
+        
+        ¿Confirma la actualización del usuario con los cambios mostrados? (s/N)
+    register: final_confirmation
+
+  - name: Actualizar usuario mediante Microsoft Graph API
     include_role:
       name: microsoft_graph_user
     vars:
       action: update
-      user_principal_name: "{{ item.user_principal_name }}"
-      user_updates: "{{ item.updates }}"
-    loop: "{{ users_to_update }}"
+      user_principal_name: "{{ upn_input.user_input | trim }}"
+      user_updates: "{{ user_updates }}"
+    when: (final_confirmation.user_input | trim | lower) in ['s', 'si', 'yes', 'y']
     tags:
       - update_users
       - users
 
-  - name: Mostrar resumen de usuarios actualizados
+  - name: Mostrar resultado de la operación
     debug:
-      msg: "Se han procesado {{ users_to_update | length }} usuarios para actualización"
-    tags:
-      - summary
+      msg: "{{ 'Usuario actualizado exitosamente' if (final_confirmation.user_input | trim | lower) in ['s', 'si', 'yes', 'y'] else 'Operación cancelada por el usuario' }}"
