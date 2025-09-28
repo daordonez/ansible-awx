@@ -16,11 +16,11 @@ tasks:
   - name: Solicitar información del usuario a crear
     pause:
       prompt: |
-        
+
         === CREAR NUEVO USUARIO EN MICROSOFT 365 ===
-        
+
         Por favor, ingrese los siguientes datos del usuario:
-        
+
         Nombre completo (ej. Juan Pérez)
     register: display_name_input
 
@@ -78,14 +78,17 @@ tasks:
     when: item.value == "" or item.value is undefined
     loop:
       - { field: "Nombre completo", value: "{{ user_data.display_name }}" }
-      - { field: "User Principal Name", value: "{{ user_data.user_principal_name }}" }
+      - {
+          field: "User Principal Name",
+          value: "{{ user_data.user_principal_name }}",
+        }
       - { field: "Alias de correo", value: "{{ user_data.mail_nickname }}" }
       - { field: "Contraseña", value: "{{ user_data.password }}" }
 
   - name: Mostrar resumen de datos a crear
     debug:
       msg: |
-        
+
         === RESUMEN DEL USUARIO A CREAR ===
         Nombre: {{ user_data.display_name }}
         UPN: {{ user_data.user_principal_name }}
@@ -97,7 +100,7 @@ tasks:
   - name: Confirmación final
     pause:
       prompt: |
-        
+
         ¿Confirma la creación del usuario con los datos mostrados? (s/N)
     register: final_confirmation
 

@@ -15,17 +15,17 @@ tasks:
   - name: Seleccionar tipo de consulta
     pause:
       prompt: |
-        
+
         === CONSULTAR USUARIOS EN MICROSOFT 365 ===
-        
+
         Seleccione el tipo de consulta que desea realizar:
-        
+
         1. Buscar por nombre o email
         2. Filtrar por departamento
         3. Filtrar por estado (habilitado/deshabilitado)
         4. Listar todos los usuarios
         5. Búsqueda combinada (múltiples filtros)
-        
+
         Ingrese el número de opción (1-5)
     register: query_type_input
 
@@ -54,7 +54,7 @@ tasks:
         Filtrar por estado:
         - 'true' para usuarios habilitados
         - 'false' para usuarios deshabilitados
-        
+
         Ingrese true o false
     register: enabled_input
     when: query_type_input.user_input | trim == '3'
@@ -63,7 +63,7 @@ tasks:
     pause:
       prompt: |
         === BÚSQUEDA COMBINADA ===
-        
+
         Término de búsqueda (nombre/email) - OPCIONAL, presione Enter para omitir
     register: combined_search_input
     when: query_type_input.user_input | trim == '5'
@@ -113,21 +113,21 @@ tasks:
   - name: Añadir término de búsqueda combinada
     set_fact:
       query_filters: "{{ query_filters | combine({'search_term': combined_search_input.user_input | trim}) }}"
-    when: 
+    when:
       - query_type_input.user_input | trim == '5'
       - combined_search_input.user_input | trim != ""
 
   - name: Añadir departamento combinado
     set_fact:
       query_filters: "{{ query_filters | combine({'department': combined_department_input.user_input | trim}) }}"
-    when: 
+    when:
       - query_type_input.user_input | trim == '5'
       - combined_department_input.user_input | trim != ""
 
   - name: Añadir estado combinado
     set_fact:
       query_filters: "{{ query_filters | combine({'enabled': combined_enabled_input.user_input | trim}) }}"
-    when: 
+    when:
       - query_type_input.user_input | trim == '5'
       - combined_enabled_input.user_input | trim != ""
 
@@ -140,7 +140,7 @@ tasks:
   - name: Mostrar filtros aplicados
     debug:
       msg: |
-        
+
         === FILTROS DE BÚSQUEDA ===
         {% if query_filters | length > 0 %}
         {% for key, value in query_filters.items() %}
@@ -163,18 +163,18 @@ tasks:
   - name: Mostrar usuarios encontrados
     debug:
       msg: |
-        
+
         === RESULTADOS DE LA BÚSQUEDA ===
-        
+
         Total de usuarios encontrados: {{ queried_users | length if queried_users is defined else 0 }}
-        
+
         {% if queried_users is defined and queried_users | length > 0 %}
         {% for user in queried_users[:10] %}
         {{ loop.index }}. {{ user.displayName }} ({{ user.userPrincipalName }})
            Departamento: {{ user.department | default('No especificado') }}
            Puesto: {{ user.jobTitle | default('No especificado') }}
            Estado: {{ 'Habilitado' if user.accountEnabled else 'Deshabilitado' }}
-        
+
         {% endfor %}
         {% if queried_users | length > 10 %}
         ... y {{ queried_users | length - 10 }} usuarios más
@@ -188,7 +188,7 @@ tasks:
     template:
       src: user_report.j2
       dest: "/tmp/user_report_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}.txt"
-    when: 
+    when:
       - (generate_report_input.user_input | trim | lower) in ['s', 'si', 'yes', 'y']
       - queried_users is defined
     register: report_generated
@@ -198,9 +198,9 @@ tasks:
   - name: Mostrar ubicación del reporte
     debug:
       msg: |
-        
+
         📄 REPORTE GENERADO
-        
+
         Archivo: {{ report_generated.dest }}
         Usuarios incluidos: {{ queried_users | length }}
     when: report_generated is succeeded

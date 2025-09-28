@@ -15,25 +15,25 @@ tasks:
   - name: Advertencia sobre eliminación de usuarios
     debug:
       msg: |
-        
+
         ⚠️  ADVERTENCIA: ELIMINACIÓN DE USUARIO ⚠️
-        
+
         Esta operación eliminará PERMANENTEMENTE el usuario de Microsoft 365.
-        
+
         - Se perderán todos los datos asociados al usuario
         - El acceso a todos los servicios será revocado inmediatamente  
         - Esta acción NO se puede deshacer
-        
+
         Proceda solo si está completamente seguro de esta acción.
 
   - name: Solicitar UPN del usuario a eliminar
     pause:
       prompt: |
-        
+
         === ELIMINAR USUARIO DE MICROSOFT 365 ===
-        
+
         User Principal Name del usuario a eliminar (ej. usuario@tuempresa.com)
-        
+
         ESCRIBA "CANCELAR" para abortar la operación
     register: upn_input
 
@@ -58,13 +58,13 @@ tasks:
   - name: Solicitar confirmación con texto específico
     pause:
       prompt: |
-        
+
         === CONFIRMACIÓN REQUERIDA ===
-        
+
         Usuario a eliminar: {{ upn_input.user_input | trim }}
-        
+
         Para confirmar la eliminación, escriba exactamente: ELIMINAR USUARIO
-        
+
         Cualquier otro texto cancelará la operación
     register: confirmation_text
 
@@ -76,13 +76,13 @@ tasks:
   - name: Segunda confirmación de seguridad
     pause:
       prompt: |
-        
+
         === ÚLTIMA CONFIRMACIÓN ===
-        
+
         ¿Está ABSOLUTAMENTE SEGURO de que desea eliminar el usuario {{ upn_input.user_input | trim }}?
-        
+
         Esta es la ÚLTIMA oportunidad para cancelar.
-        
+
         Escriba "SI, ELIMINAR" para proceder, cualquier otro texto cancelará
     register: final_confirmation
 
@@ -104,10 +104,10 @@ tasks:
   - name: Mostrar confirmación de eliminación
     debug:
       msg: |
-        
+
         ✅ USUARIO ELIMINADO EXITOSAMENTE
-        
+
         Usuario: {{ upn_input.user_input | trim }}
         Fecha/Hora: {{ ansible_date_time.iso8601 }}
-        
+
         El usuario ha sido eliminado permanentemente del tenant.

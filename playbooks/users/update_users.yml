@@ -15,9 +15,9 @@ tasks:
   - name: Solicitar UPN del usuario a actualizar
     pause:
       prompt: |
-        
+
         === ACTUALIZAR USUARIO EN MICROSOFT 365 ===
-        
+
         User Principal Name del usuario a actualizar (ej. juan.perez@tuempresa.com)
     register: upn_input
 
@@ -113,11 +113,11 @@ tasks:
   - name: Mostrar resumen de actualizaciones
     debug:
       msg: |
-        
+
         === RESUMEN DE ACTUALIZACIONES ===
         Usuario: {{ upn_input.user_input | trim }}
         Campos a actualizar: {{ user_updates.keys() | list | join(', ') }}
-        
+
         {% for key, value in user_updates.items() %}
         - {{ key }}: {{ value }}
         {% endfor %}
@@ -125,7 +125,7 @@ tasks:
   - name: Confirmación final
     pause:
       prompt: |
-        
+
         ¿Confirma la actualización del usuario con los cambios mostrados? (s/N)
     register: final_confirmation
 

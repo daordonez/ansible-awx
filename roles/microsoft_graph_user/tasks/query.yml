@@ -59,7 +59,7 @@
 
     - name: Añadir componente de búsqueda
       set_fact:
-        query_parts: "{{ query_parts + ['$search=\"' + search_components | join(' OR ') + '\"'] }}"
+        query_parts: '{{ query_parts + [''$search="'' + search_components | join('' OR '') + ''"''] }}'
       when: search_components | length > 0
 
     - name: Añadir componente de filtro
@@ -90,8 +90,8 @@
 - name: Validar resultado de la consulta
   fail:
     msg: "Usuario no encontrado: {{ filters.upn_exact }}"
-  when: 
-    - filters.upn_exact is defined 
+  when:
+    - filters.upn_exact is defined
     - filters.upn_exact != ""
     - queried_users | length == 0
 
