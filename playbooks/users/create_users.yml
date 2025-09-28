@@ -9,16 +9,13 @@
     client_id: "{{ lookup('env','CLIENT_ID') | default(vault_client_id | default('your-client-id'), true) }}"
     client_secret: "{{ lookup('env','CLIENT_SECRET') | default(vault_client_secret | default('your-client-secret'), true) }}"
 
-    # Dominio del UPN (defínelo en la Plantilla o Inventory). Ejemplo: contoso.com
-    m365_domain: "{{ m365_domain | default('contoso.com') }}"
-
     # El Survey pedirá 'upn_local' (solo la parte a la izquierda de @)
     # Normalizamos: a minúsculas, espacios -> '.', y quitamos caracteres no permitidos
     upn_local_normalized: "{{ user_upn | lower }}"
 
     # Estas variables las rellenará el Survey:
     display_name: "{{ display_name }}"
-    user_principal_name: "{{ upn_local_normalized }}@{{ m365_domain }}"
+    user_principal_name: "{{ upn_local_normalized }}@{{ m365_domain | default('contoso.com') }}"
     mail_nickname: "{{ mail_nickname | default(upn_local_normalized) }}"
     password: "{{ temp_password }}"
     force_change_password: "{{ force_password | default(true) | bool }}"
