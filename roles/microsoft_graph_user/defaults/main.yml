@@ -12,7 +12,6 @@ retry_delay: 5
 # User defaults
 default_usage_location: "ES"
 default_account_enabled: true
-default_force_change_password_next_sign_in: true
 
 # Logging
 enable_logging: true
