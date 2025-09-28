@@ -11,7 +11,7 @@ vars:
   tenant_id: "{{ vault_tenant_id | default('your-tenant-id') }}"
   client_id: "{{ vault_client_id | default('your-client-id') }}"
   client_secret: "{{ vault_client_secret | default('your-client-secret') }}"
-  
+
   # Lista de usuarios a crear (ejemplo)
   users_to_create:
     - display_name: "Juan Pérez"

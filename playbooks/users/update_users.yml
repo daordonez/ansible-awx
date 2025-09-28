@@ -9,7 +9,7 @@ vars:
   tenant_id: "{{ vault_tenant_id | default('your-tenant-id') }}"
   client_id: "{{ vault_client_id | default('your-client-id') }}"
   client_secret: "{{ vault_client_secret | default('your-client-secret') }}"
-  
+
   # Lista de usuarios a actualizar
   users_to_update:
     - user_principal_name: "juan.perez@yourdomain.com"

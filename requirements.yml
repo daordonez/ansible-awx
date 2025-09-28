@@ -4,15 +4,14 @@ collections:
   # Microsoft Graph API collection
   - name: community.general
     version: ">=5.0.0"
-  
+
   # Para manejo de APIs REST
   - name: ansible.posix
     version: ">=1.3.0"
-  
+
   # Para manejo de JSON y templating avanzado
   - name: community.crypto
     version: ">=2.0.0"
-
 # roles:
 #   # Roles externos si son necesarios
 #   - name: geerlingguy.pip

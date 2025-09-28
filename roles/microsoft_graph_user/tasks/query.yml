@@ -16,7 +16,7 @@
 
 - name: Construir query de filtros
   set_fact:
-    query_string: "{% if filters.search_term %}$search=\"displayName:{{ filters.search_term }}\"{% endif %}{% if filters.department %}{% if query_string %}{{ query_string }}&{% endif %}$filter=department eq '{{ filters.department }}'{% endif %}{% if filters.enabled %}{% if query_string %}{{ query_string }}&{% endif %}$filter=accountEnabled eq {{ filters.enabled }}{% endif %}"
+    query_string: '{% if filters.search_term %}$search="displayName:{{ filters.search_term }}"{% endif %}{% if filters.department %}{% if query_string %}{{ query_string }}&{% endif %}$filter=department eq ''{{ filters.department }}''{% endif %}{% if filters.enabled %}{% if query_string %}{{ query_string }}&{% endif %}$filter=accountEnabled eq {{ filters.enabled }}{% endif %}'
 
 - name: Consultar usuarios en Microsoft 365
   uri:
