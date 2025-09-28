@@ -1,0 +1,37 @@
+---
+# Tareas para consultar usuarios en Microsoft Graph
+- name: Obtener token de acceso de Azure AD
+  uri:
+    url: "{{ graph_auth_url }}/{{ tenant_id }}/oauth2/v2.0/token"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      grant_type: client_credentials
+      client_id: "{{ client_id }}"
+      client_secret: "{{ client_secret }}"
+      scope: "https://graph.microsoft.com/.default"
+    status_code: 200
+  register: auth_response
+  no_log: true
+
+- name: Construir query de filtros
+  set_fact:
+    query_string: "{% if filters.search_term %}$search=\"displayName:{{ filters.search_term }}\"{% endif %}{% if filters.department %}{% if query_string %}{{ query_string }}&{% endif %}$filter=department eq '{{ filters.department }}'{% endif %}{% if filters.enabled %}{% if query_string %}{{ query_string }}&{% endif %}$filter=accountEnabled eq {{ filters.enabled }}{% endif %}"
+
+- name: Consultar usuarios en Microsoft 365
+  uri:
+    url: "{{ graph_api_url }}/users{% if query_string %}?{{ query_string }}{% endif %}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ auth_response.json.access_token }}"
+      ConsistencyLevel: eventual
+    status_code: 200
+  register: query_users_response
+
+- name: Procesar usuarios encontrados
+  set_fact:
+    queried_users: "{{ query_users_response.json.value }}"
+
+- name: Mostrar cantidad de usuarios encontrados
+  debug:
+    msg: "Se encontraron {{ queried_users | length }} usuarios"

@@ -1,0 +1,42 @@
+---
+# Playbook para actualizar usuarios en Microsoft 365
+name: Actualizar usuarios en Microsoft 365
+hosts: localhost
+connection: local
+gather_facts: false
+
+vars:
+  tenant_id: "{{ vault_tenant_id | default('your-tenant-id') }}"
+  client_id: "{{ vault_client_id | default('your-client-id') }}"
+  client_secret: "{{ vault_client_secret | default('your-client-secret') }}"
+  
+  # Lista de usuarios a actualizar
+  users_to_update:
+    - user_principal_name: "juan.perez@yourdomain.com"
+      updates:
+        department: "DevOps"
+        job_title: "Senior Developer"
+        office_location: "Madrid"
+    - user_principal_name: "maria.gonzalez@yourdomain.com"
+      updates:
+        job_title: "Senior HR Manager"
+        phone_number: "+34 123 456 789"
+
+tasks:
+  - name: Actualizar usuarios mediante Microsoft Graph API
+    include_role:
+      name: microsoft_graph_user
+    vars:
+      action: update
+      user_principal_name: "{{ item.user_principal_name }}"
+      user_updates: "{{ item.updates }}"
+    loop: "{{ users_to_update }}"
+    tags:
+      - update_users
+      - users
+
+  - name: Mostrar resumen de usuarios actualizados
+    debug:
+      msg: "Se han procesado {{ users_to_update | length }} usuarios para actualización"
+    tags:
+      - summary

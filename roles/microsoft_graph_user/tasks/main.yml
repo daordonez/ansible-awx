@@ -1,0 +1,10 @@
+---
+# Tareas principales del rol microsoft_graph_user
+- name: Incluir tareas según la acción solicitada
+  include_tasks: "{{ action }}.yml"
+  when: action is defined
+
+- name: Validar parámetros requeridos
+  fail:
+    msg: "La acción '{{ action }}' no está definida o no es válida"
+  when: action is not defined or action not in ['create', 'update', 'delete', 'query']

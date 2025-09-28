@@ -1,0 +1,20 @@
+---
+# Ejemplos de configuración para consultas de usuarios
+
+# Filtrar por departamento específico
+filter_department: "Tecnología"
+
+# Filtrar por estado de cuenta (true/false)
+filter_enabled: true
+
+# Buscar usuarios por término en el nombre
+search_term: "Juan"
+
+# Generar reporte en archivo
+generate_report: true
+
+# Múltiples filtros combinados (ejemplo)
+query_filters:
+  department: "Ventas"
+  enabled: true
+  search_term: ""

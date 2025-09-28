@@ -1,0 +1,4 @@
+# Este directorio contiene archivos de credenciales encriptados
+# No commitear archivos .yml sin encriptar
+*.yml
+!.gitkeep

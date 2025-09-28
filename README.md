@@ -1,36 +1,75 @@
-# ansible-awx
+# Ansible AWX - Gestión de Usuarios Microsoft 365
 
-Este repositorio contiene playbooks de Ansible diseñados para automatizar tareas de operación de un tenant de Microsoft 365 mediante la API de Microsoft Graph.
+Este repositorio contiene playbooks de Ansible diseñados específicamente para la **gestión de usuarios** en Microsoft 365 mediante la API de Microsoft Graph.
 
 ## Descripción
 
-Los playbooks contenidos en este repositorio están pensados para facilitar la administración y automatización de diversas tareas operativas en entornos de Microsoft 365, aprovechando las capacidades de la API de Microsoft Graph para interactuar de manera programática con los servicios y recursos del tenant.
+Los playbooks están enfocados en las operaciones CRUD (Crear, Leer, Actualizar, Eliminar) de usuarios en entornos Microsoft 365, proporcionando una interfaz automatizada y versionable para la administración de usuarios.
+
+## Estructura del Repositorio
+
+```
+ansible-awx/
+├── playbooks/
+│   └── users/                    # Playbooks para gestión de usuarios
+│       ├── create_users.yml      # Crear usuarios
+│       ├── update_users.yml      # Actualizar usuarios
+│       ├── delete_users.yml      # Eliminar usuarios
+│       └── query_users.yml       # Consultar usuarios
+├── roles/
+│   └── microsoft_graph_user/     # Rol para interacción con Graph API
+│       ├── tasks/
+│       ├── defaults/
+│       └── templates/
+├── docs/                         # Documentación completa
+│   ├── README.md                 # Documentación detallada
+│   └── variables.md              # Guía de variables
+└── README.md                     # Este archivo
+```
 
 ## Características principales
 
-- **Automatización de operaciones**: Playbooks diseñados específicamente para automatizar tareas recurrentes de administración de Microsoft 365
-- **Integración con Microsoft Graph API**: Utilización de la API oficial de Microsoft para acceder y gestionar recursos del tenant
-- **Gestión de tenant**: Herramientas para la administración centralizada de usuarios, grupos, aplicaciones y configuraciones
-- **Operaciones escalables**: Soluciones que permiten gestionar operaciones a gran escala de manera eficiente
+- **Operaciones CRUD completas**: Crear, leer, actualizar y eliminar usuarios
+- **Integración con Microsoft Graph API**: Utilización de la API oficial de Microsoft
+- **Estructura modular**: Roles reutilizables y playbooks específicos
+- **Gestión segura de credenciales**: Soporte para ansible-vault
+- **Documentación completa**: Guías detalladas y ejemplos de uso
 
 ## Tecnologías utilizadas
 
-- **Ansible**: Plataforma de automatización para la gestión de configuraciones y despliegues
-- **Microsoft Graph API**: API unificada de Microsoft para acceder a datos y servicios de Microsoft 365
-- **AWX**: Interfaz web para la gestión y ejecución de playbooks de Ansible
+- **Ansible**: Plataforma de automatización para la gestión de configuraciones
+- **Microsoft Graph API**: API unificada de Microsoft para acceder a datos de Microsoft 365
+- **AWX** (opcional): Interfaz web para la gestión y ejecución de playbooks
 
 ## Casos de uso
 
-Este repositorio está orientado a automatizar tareas como:
-- Gestión de usuarios y grupos
-- Configuración de políticas de seguridad
-- Administración de aplicaciones y permisos
-- Monitoreo y reporting de recursos del tenant
-- Operaciones de mantenimiento y configuración
+Este repositorio permite automatizar:
+- Creación masiva de usuarios
+- Actualización de perfiles de usuario
+- Eliminación controlada de usuarios
+- Consultas y reportes de usuarios
+- Gestión de usuarios por departamento/rol
 
 ## Requisitos previos
 
 - Acceso a un tenant de Microsoft 365
-- Credenciales y permisos adecuados para la API de Microsoft Graph
-- Entorno Ansible/AWX configurado
-- Conocimientos básicos de administración de Microsoft 365
+- Aplicación registrada en Azure AD con permisos de Graph API
+- Ansible instalado (versión 2.9 o superior)
+- Python requests library instalada
+
+## Inicio Rápido
+
+1. **Configurar credenciales**:
+   ```bash
+   ansible-vault create vault/secrets.yml
+   ```
+
+2. **Ejecutar un playbook**:
+   ```bash
+   ansible-playbook playbooks/users/query_users.yml --ask-vault-pass
+   ```
+
+3. **Ver la documentación completa**:
+   ```bash
+   cat docs/README.md
+   ```

@@ -1,0 +1,48 @@
+---
+# Playbook para crear usuarios en Microsoft 365
+# Este playbook utiliza la API de Microsoft Graph para crear usuarios
+name: Crear usuarios en Microsoft 365
+hosts: localhost
+connection: local
+gather_facts: false
+
+vars:
+  # Variables que se pueden definir en ejecución o en archivos de variables
+  tenant_id: "{{ vault_tenant_id | default('your-tenant-id') }}"
+  client_id: "{{ vault_client_id | default('your-client-id') }}"
+  client_secret: "{{ vault_client_secret | default('your-client-secret') }}"
+  
+  # Lista de usuarios a crear (ejemplo)
+  users_to_create:
+    - display_name: "Juan Pérez"
+      user_principal_name: "juan.perez@yourdomain.com"
+      mail_nickname: "juan.perez"
+      password: "TempPassword123!"
+      force_change_password: true
+      department: "IT"
+      job_title: "Developer"
+    - display_name: "María González"
+      user_principal_name: "maria.gonzalez@yourdomain.com"
+      mail_nickname: "maria.gonzalez"
+      password: "TempPassword456!"
+      force_change_password: true
+      department: "HR"
+      job_title: "HR Manager"
+
+tasks:
+  - name: Crear usuarios mediante Microsoft Graph API
+    include_role:
+      name: microsoft_graph_user
+    vars:
+      action: create
+      user_data: "{{ item }}"
+    loop: "{{ users_to_create }}"
+    tags:
+      - create_users
+      - users
+
+  - name: Mostrar resumen de usuarios creados
+    debug:
+      msg: "Se han procesado {{ users_to_create | length }} usuarios para creación"
+    tags:
+      - summary

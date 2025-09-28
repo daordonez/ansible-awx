@@ -1,0 +1,23 @@
+====================================
+REPORTE DE USUARIOS - Microsoft 365
+====================================
+Fecha: {{ ansible_date_time.date }}
+Hora: {{ ansible_date_time.time }}
+
+Total de usuarios encontrados: {{ queried_users | length }}
+
+{% for user in queried_users %}
+----------------------------------------
+Nombre: {{ user.displayName }}
+UPN: {{ user.userPrincipalName }}
+Email: {{ user.mail | default('N/A') }}
+Departamento: {{ user.department | default('N/A') }}
+Puesto: {{ user.jobTitle | default('N/A') }}
+Habilitado: {{ user.accountEnabled }}
+Última conexión: {{ user.signInActivity.lastSignInDateTime | default('N/A') }}
+
+{% endfor %}
+
+====================================
+Fin del reporte
+====================================

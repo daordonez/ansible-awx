@@ -1,0 +1,43 @@
+---
+# Playbook para consultar y listar usuarios en Microsoft 365
+name: Consultar usuarios en Microsoft 365
+hosts: localhost
+connection: local
+gather_facts: false
+
+vars:
+  tenant_id: "{{ vault_tenant_id | default('your-tenant-id') }}"
+  client_id: "{{ vault_client_id | default('your-client-id') }}"
+  client_secret: "{{ vault_client_secret | default('your-client-secret') }}"
+  
+  # Filtros de consulta (opcionales)
+  query_filters:
+    department: "{{ filter_department | default('') }}"
+    enabled: "{{ filter_enabled | default('') }}"
+    search_term: "{{ search_term | default('') }}"
+
+tasks:
+  - name: Consultar usuarios mediante Microsoft Graph API
+    include_role:
+      name: microsoft_graph_user
+    vars:
+      action: query
+      filters: "{{ query_filters }}"
+    tags:
+      - query_users
+      - users
+
+  - name: Mostrar usuarios encontrados
+    debug:
+      var: queried_users
+    when: queried_users is defined
+    tags:
+      - show_results
+
+  - name: Generar reporte de usuarios
+    template:
+      src: user_report.j2
+      dest: "/tmp/user_report_{{ ansible_date_time.date }}.txt"
+    when: generate_report | default(false) | bool
+    tags:
+      - report

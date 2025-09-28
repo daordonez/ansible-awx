@@ -1,0 +1,29 @@
+---
+# Tareas para eliminar usuarios en Microsoft Graph
+- name: Obtener token de acceso de Azure AD
+  uri:
+    url: "{{ graph_auth_url }}/{{ tenant_id }}/oauth2/v2.0/token"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      grant_type: client_credentials
+      client_id: "{{ client_id }}"
+      client_secret: "{{ client_secret }}"
+      scope: "https://graph.microsoft.com/.default"
+    status_code: 200
+  register: auth_response
+  no_log: true
+
+- name: Eliminar usuario de Microsoft 365
+  uri:
+    url: "{{ graph_api_url }}/users/{{ user_principal_name }}"
+    method: DELETE
+    headers:
+      Authorization: "Bearer {{ auth_response.json.access_token }}"
+    status_code: 204
+  register: delete_user_response
+
+- name: Mostrar resultado de la eliminación
+  debug:
+    msg: "Usuario {{ user_principal_name }} eliminado exitosamente"
+  when: delete_user_response.status == 204

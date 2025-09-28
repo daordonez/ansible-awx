@@ -1,0 +1,19 @@
+---
+# Variables por defecto del rol microsoft_graph_user
+# API Configuration
+graph_api_url: "https://graph.microsoft.com/v1.0"
+graph_auth_url: "https://login.microsoftonline.com"
+
+# Timeouts and retries
+api_timeout: 30
+max_retries: 3
+retry_delay: 5
+
+# User defaults
+default_usage_location: "ES"
+default_account_enabled: true
+default_force_change_password_next_sign_in: true
+
+# Logging
+enable_logging: true
+log_level: "INFO"

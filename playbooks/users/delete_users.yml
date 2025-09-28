@@ -1,0 +1,41 @@
+---
+# Playbook para eliminar usuarios en Microsoft 365
+name: Eliminar usuarios en Microsoft 365
+hosts: localhost
+connection: local
+gather_facts: false
+
+vars:
+  tenant_id: "{{ vault_tenant_id | default('your-tenant-id') }}"
+  client_id: "{{ vault_client_id | default('your-client-id') }}"
+  client_secret: "{{ vault_client_secret | default('your-client-secret') }}"
+  
+  # Lista de usuarios a eliminar (por UPN)
+  users_to_delete:
+    - "usuario.temporal@yourdomain.com"
+    - "usuario.test@yourdomain.com"
+
+tasks:
+  - name: Confirmar eliminación de usuarios
+    pause:
+      prompt: "¿Está seguro de que desea eliminar {{ users_to_delete | length }} usuarios? (Presione Enter para continuar, Ctrl+C para cancelar)"
+    when: confirm_deletion | default(true) | bool
+    tags:
+      - confirmation
+
+  - name: Eliminar usuarios mediante Microsoft Graph API
+    include_role:
+      name: microsoft_graph_user
+    vars:
+      action: delete
+      user_principal_name: "{{ item }}"
+    loop: "{{ users_to_delete }}"
+    tags:
+      - delete_users
+      - users
+
+  - name: Mostrar resumen de usuarios eliminados
+    debug:
+      msg: "Se han procesado {{ users_to_delete | length }} usuarios para eliminación"
+    tags:
+      - summary

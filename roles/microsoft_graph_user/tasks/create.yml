@@ -1,0 +1,42 @@
+---
+# Tareas para crear usuarios en Microsoft Graph
+- name: Obtener token de acceso de Azure AD
+  uri:
+    url: "{{ graph_auth_url }}/{{ tenant_id }}/oauth2/v2.0/token"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      grant_type: client_credentials
+      client_id: "{{ client_id }}"
+      client_secret: "{{ client_secret }}"
+      scope: "https://graph.microsoft.com/.default"
+    status_code: 200
+  register: auth_response
+  no_log: true
+
+- name: Crear usuario en Microsoft 365
+  uri:
+    url: "{{ graph_api_url }}/users"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ auth_response.json.access_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      displayName: "{{ user_data.display_name }}"
+      userPrincipalName: "{{ user_data.user_principal_name }}"
+      mailNickname: "{{ user_data.mail_nickname }}"
+      accountEnabled: "{{ user_data.account_enabled | default(default_account_enabled) }}"
+      usageLocation: "{{ user_data.usage_location | default(default_usage_location) }}"
+      passwordProfile:
+        password: "{{ user_data.password }}"
+        forceChangePasswordNextSignIn: "{{ user_data.force_change_password | default(default_force_change_password_next_sign_in) }}"
+      department: "{{ user_data.department | default('') }}"
+      jobTitle: "{{ user_data.job_title | default('') }}"
+    status_code: 201
+  register: create_user_response
+
+- name: Mostrar resultado de la creación
+  debug:
+    msg: "Usuario {{ user_data.display_name }} creado exitosamente con ID: {{ create_user_response.json.id }}"
+  when: create_user_response.status == 201

@@ -1,0 +1,34 @@
+---
+# Ejemplo de archivo de usuarios para crear
+# Copiar como vars/users.yml y modificar según necesidades
+
+users_to_create:
+  - display_name: "Juan Ejemplo"
+    user_principal_name: "juan.ejemplo@tuempresa.com"
+    mail_nickname: "juan.ejemplo"
+    password: "TempPassword123!"
+    force_change_password: true
+    department: "Tecnología"
+    job_title: "Desarrollador"
+    usage_location: "ES"
+    account_enabled: true
+
+  - display_name: "María Ejemplo"
+    user_principal_name: "maria.ejemplo@tuempresa.com"
+    mail_nickname: "maria.ejemplo"
+    password: "TempPassword456!"
+    force_change_password: true
+    department: "Recursos Humanos"
+    job_title: "Especialista en RRHH"
+    usage_location: "ES"
+    account_enabled: true
+
+  - display_name: "Carlos Ejemplo"
+    user_principal_name: "carlos.ejemplo@tuempresa.com"
+    mail_nickname: "carlos.ejemplo"
+    password: "TempPassword789!"
+    force_change_password: true
+    department: "Ventas"
+    job_title: "Representante de Ventas"
+    usage_location: "ES"
+    account_enabled: true
