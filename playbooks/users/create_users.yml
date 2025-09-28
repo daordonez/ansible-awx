@@ -14,7 +14,7 @@
 
     # El Survey pedirá 'upn_local' (solo la parte a la izquierda de @)
     # Normalizamos: a minúsculas, espacios -> '.', y quitamos caracteres no permitidos
-    upn_local_normalized: "{{ user_upn | lower | regex_replace('\\s+', '.') | regex_replace('[^a-z0-9._-]', '') }}"
+    upn_local_normalized: "{{ user_upn | lower }}"
 
     # Estas variables las rellenará el Survey:
     display_name: "{{ display_name }}"
